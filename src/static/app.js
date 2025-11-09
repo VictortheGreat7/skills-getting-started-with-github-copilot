@@ -4,6 +4,16 @@ document.addEventListener("DOMContentLoaded", () => {
   const signupForm = document.getElementById("signup-form");
   const messageDiv = document.getElementById("message");
 
+  // small helper to avoid inserting raw HTML from server responses
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
+  }
+
   // Function to fetch activities from API
   async function fetchActivities() {
     try {
@@ -13,6 +23,9 @@ document.addEventListener("DOMContentLoaded", () => {
       // Clear loading message
       activitiesList.innerHTML = "";
 
+      // Reset activity select to placeholder to avoid duplicate options when reloading
+      activitySelect.innerHTML = `<option value="">-- Select an activity --</option>`;
+
       // Populate activities list
       Object.entries(activities).forEach(([name, details]) => {
         const activityCard = document.createElement("div");
@@ -20,14 +33,72 @@ document.addEventListener("DOMContentLoaded", () => {
 
         const spotsLeft = details.max_participants - details.participants.length;
 
+        // Build participants section (pretty pill list or a subtle info when empty)
+        const participantsHtml =
+          details.participants && details.participants.length > 0
+            ? `<h5 class="participants-heading">Participants (${details.participants.length})</h5>
+               <ul class="participants-list">
+                 ${details.participants
+                   .map(
+                     (p) =>
+                       `<li class="participant-pill">${escapeHtml(p)} <button class="remove-btn" data-activity="${escapeHtml(
+                         name
+                       )}" data-email="${escapeHtml(p)}" title="Unregister">&times;</button></li>`
+                   )
+                   .join("")}
+               </ul>`
+            : `<p class="info">No participants yet</p>`;
+
         activityCard.innerHTML = `
-          <h4>${name}</h4>
-          <p>${details.description}</p>
-          <p><strong>Schedule:</strong> ${details.schedule}</p>
+          <h4>${escapeHtml(name)}</h4>
+          <p>${escapeHtml(details.description)}</p>
+          <p><strong>Schedule:</strong> ${escapeHtml(details.schedule)}</p>
           <p><strong>Availability:</strong> ${spotsLeft} spots left</p>
+          ${participantsHtml}
         `;
 
         activitiesList.appendChild(activityCard);
+
+        // Attach delete handler via event delegation on the activity card
+        activityCard.addEventListener("click", async (evt) => {
+          const btn = evt.target.closest(".remove-btn");
+          if (!btn) return;
+
+          const activityName = btn.dataset.activity;
+          const email = btn.dataset.email;
+
+          if (!activityName || !email) return;
+
+          // Confirm quick action
+          const ok = confirm(`Unregister ${email} from ${activityName}?`);
+          if (!ok) return;
+
+          try {
+            const resp = await fetch(
+              `/activities/${encodeURIComponent(activityName)}/participants?email=${encodeURIComponent(
+                email
+              )}`,
+              { method: "DELETE" }
+            );
+
+            const result = await resp.json();
+            if (resp.ok) {
+              // Refresh activities list to reflect the removal
+              fetchActivities();
+            } else {
+              messageDiv.textContent = result.detail || "Failed to remove participant";
+              messageDiv.className = "error";
+              messageDiv.classList.remove("hidden");
+              setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+            }
+          } catch (err) {
+            console.error("Error removing participant:", err);
+            messageDiv.textContent = "Failed to remove participant. Please try again.";
+            messageDiv.className = "error";
+            messageDiv.classList.remove("hidden");
+            setTimeout(() => messageDiv.classList.add("hidden"), 5000);
+          }
+        });
 
         // Add option to select dropdown
         const option = document.createElement("option");
@@ -62,6 +133,8 @@ document.addEventListener("DOMContentLoaded", () => {
         messageDiv.textContent = result.message;
         messageDiv.className = "success";
         signupForm.reset();
+        // Refresh activities so the new participant appears immediately
+        fetchActivities();
       } else {
         messageDiv.textContent = result.detail || "An error occurred";
         messageDiv.className = "error";
