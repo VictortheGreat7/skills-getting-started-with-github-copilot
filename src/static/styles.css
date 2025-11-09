@@ -142,3 +142,38 @@ footer {
   padding: 20px;
   color: #666;
 }
+
+/* Participants section */
+.participants-heading {
+  margin: 12px 0 8px;
+  font-size: 14px;
+  color: #333;
+  font-weight: 600;
+}
+
+.participants-list {
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0;
+  margin: 0 0 8px 0;
+}
+
+.participant-pill {
+  background: linear-gradient(180deg, #e8eaf6 0%, #c5cae9 100%);
+  color: #1a237e;
+  padding: 6px 10px;
+  border-radius: 16px;
+  font-size: 13px;
+  border: 1px solid rgba(26, 35, 126, 0.08);
+  box-shadow: 0 1px 2px rgba(26, 35, 126, 0.04);
+}
+
+/* Smaller devices: allow pills to wrap nicely */
+@media (max-width: 480px) {
+  .participant-pill {
+    font-size: 12px;
+    padding: 5px 8px;
+  }
+}
