@@ -193,12 +193,6 @@ footer {
   background: #ffcdd2;
 }
 
-/* Ensure no list bullets or left padding on participants list */
-.participants-list {
-  list-style: none;
-  padding-left: 0;
-}
-
 /* Smaller devices: allow pills to wrap nicely */
 @media (max-width: 480px) {
   .participant-pill {
